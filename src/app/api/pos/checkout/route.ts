@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     } = body
 
     // Calculate change
-    const amountReceivedNum = parseFloat(amountReceived) || 0
+    const amountReceivedNum = parseFloat(amountReceived || '0') || 0
     const change = Math.max(0, amountReceivedNum - total)
 
     // Validate required fields
