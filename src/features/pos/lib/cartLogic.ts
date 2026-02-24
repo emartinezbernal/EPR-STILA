@@ -1,0 +1,153 @@
+import { CartItem, LogisticsDetails, DEFAULT_SERVICES, SERVICE_PRICES } from './types'
+
+const TAX_RATE = 0.16 // 16% VAT
+
+export function createCartItem(
+  product: { id: string; name: string; sku: string; barcode?: string; base_price: number; stock?: number },
+  quantity: number = 1
+): CartItem {
+  const subtotal = product.base_price * quantity
+  const tax = subtotal * TAX_RATE
+  
+  return {
+    id: crypto.randomUUID(),
+    productId: product.id,
+    product: product as any,
+    name: product.name,
+    sku: product.sku,
+    barcode: product.barcode,
+    quantity,
+    unitPrice: product.base_price,
+    discount: 0,
+    subtotal,
+    tax,
+    total: subtotal + tax,
+    isService: false,
+  }
+}
+
+export function createServiceItem(
+  serviceType: 'delivery' | 'installation'
+): CartItem {
+  const service = DEFAULT_SERVICES.find(s => s.type === serviceType)
+  const price = serviceType === 'delivery' ? SERVICE_PRICES.DELIVERY : SERVICE_PRICES.INSTALLATION
+  const taxable = serviceType === 'installation'
+  
+  const subtotal = price
+  const tax = taxable ? subtotal * TAX_RATE : 0
+  
+  return {
+    id: crypto.randomUUID(),
+    productId: `service-${serviceType}`,
+    name: serviceType === 'delivery' ? 'Entrega a domicilio' : 'Instalación profesional',
+    sku: serviceType === 'delivery' ? 'SERVICE_DELIVERY' : 'SERVICE_INSTALLATION',
+    quantity: 1,
+    unitPrice: price,
+    discount: 0,
+    subtotal,
+    tax,
+    total: subtotal + tax,
+    isService: true,
+    serviceType,
+  }
+}
+
+export function calculateTotals(items: CartItem[]) {
+  const productItems = items.filter(item => !item.isService)
+  const serviceItems = items.filter(item => item.isService)
+  
+  const subtotal = productItems.reduce((sum, item) => sum + item.subtotal, 0)
+  const productsTax = productItems.reduce((sum, item) => sum + item.tax, 0)
+  const servicesTax = serviceItems.reduce((sum, item) => sum + item.tax, 0)
+  const servicesTotal = serviceItems.reduce((sum, item) => sum + item.total, 0)
+  
+  const discount = 0 // Can be extended with discount logic
+  
+  const total = subtotal + productsTax + servicesTotal
+  
+  return {
+    subtotal,
+    productsTax,
+    servicesTax,
+    servicesTotal,
+    discount,
+    total,
+  }
+}
+
+export function getServiceItems(items: CartItem[]) {
+  return items.filter(item => item.isService)
+}
+
+export function hasDeliveryService(items: CartItem[]) {
+  return items.some(item => item.isService && item.serviceType === 'delivery')
+}
+
+export function hasInstallationService(items: CartItem[]) {
+  return items.some(item => item.isService && item.serviceType === 'installation')
+}
+
+export function updateItemQuantity(items: CartItem[], itemId: string, delta: number): CartItem[] {
+  return items
+    .map(item => {
+      if (item.id === itemId && !item.isService) {
+        const newQuantity = item.quantity + delta
+        if (newQuantity <= 0) return null
+        const subtotal = item.unitPrice * newQuantity
+        const tax = subtotal * TAX_RATE
+        return {
+          ...item,
+          quantity: newQuantity,
+          subtotal,
+          tax,
+          total: subtotal + tax,
+        }
+      }
+      return item
+    })
+    .filter(Boolean) as CartItem[]
+}
+
+export function validateCheckout(items: CartItem[], logistics: LogisticsDetails): { valid: boolean; errors: string[] } {
+  const errors: string[] = []
+  
+  // Empty cart
+  if (items.length === 0) {
+    errors.push('El carrito está vacío')
+  }
+  
+  // Check stock for each item
+  items.forEach(item => {
+    if (!item.isService && item.product) {
+      const availableStock = item.product.stock || 0
+      if (item.quantity > availableStock) {
+        errors.push(`Stock insuficiente para ${item.name}`)
+      }
+    }
+  })
+  
+  // Validate delivery logistics
+  if (hasDeliveryService(items)) {
+    if (!logistics.deliveryAddress) {
+      errors.push('La dirección de entrega es requerida')
+    }
+  }
+  
+  // Validate installation logistics
+  if (hasInstallationService(items)) {
+    if (!logistics.installationAddress) {
+      errors.push('La dirección de instalación es requerida')
+    }
+    if (!logistics.installationContactName) {
+      errors.push('El contacto de instalación es requerido')
+    }
+    if (!logistics.installationContactPhone) {
+      errors.push('El teléfono de contacto es requerido')
+    }
+  }
+  
+  return {
+    valid: errors.length === 0,
+    errors,
+  }
+}
