@@ -11,9 +11,9 @@ import { RecommendedProducts } from '@/features/pos/components/RecommendedProduc
 import { usePosShortcuts } from '@/features/pos/hooks/usePosShortcuts'
 import { CartItem, LogisticsDetails, PaymentMethod, SaleResponse, SaleStatus, DeliveryStatus, InstallationStatus, FabricationDetails } from '@/features/pos/lib/types'
 import { createCartItem, createServiceItem, createFabricationItem, calculateTotals, validateCheckout, hasFabricationItems } from '@/features/pos/lib/cartLogic'
+import { createOpsOrdersFromCheckout, saveOpsOrders } from '@/features/ops/lib/store'
 import { Product } from '@/types/database'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Package, Wrench, AlertCircle } from 'lucide-react'
 
 // LocalStorage key for draft persistence
 const DRAFT_KEY = 'pos_draft'
