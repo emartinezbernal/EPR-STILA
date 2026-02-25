@@ -7,6 +7,7 @@ import { PosToolbar } from '@/features/pos/components/PosToolbar'
 import { ProductGrid } from '@/features/pos/components/ProductGrid'
 import { CartPanel } from '@/features/pos/components/CartPanel'
 import { CheckoutDrawer } from '@/features/pos/components/CheckoutDrawer'
+import { RecommendedProducts } from '@/features/pos/components/RecommendedProducts'
 import { usePosShortcuts } from '@/features/pos/hooks/usePosShortcuts'
 import { CartItem, LogisticsDetails, PaymentMethod, SaleResponse } from '@/features/pos/lib/types'
 import { createCartItem, createServiceItem, calculateTotals } from '@/features/pos/lib/cartLogic'
@@ -21,6 +22,7 @@ export default function POSPage() {
   
   const [deliveryEnabled, setDeliveryEnabled] = useState(false)
   const [installationEnabled, setInstallationEnabled] = useState(false)
+  const [warrantyEnabled, setWarrantyEnabled] = useState(false)
   const [logistics, setLogistics] = useState<LogisticsDetails>({})
   
   // Checkout state
@@ -142,6 +144,18 @@ export default function POSPage() {
     })
   }, [])
 
+  // Handle warranty toggle
+  const handleWarrantyToggle = useCallback((enabled: boolean) => {
+    setWarrantyEnabled(enabled)
+    setCart(prev => {
+      if (enabled && !prev.some(i => i.isService && i.serviceType === 'warranty')) {
+        return [...prev, createServiceItem('warranty')]
+      }
+      if (!enabled) return prev.filter(i => !(i.isService && i.serviceType === 'warranty'))
+      return prev
+    })
+  }, [])
+
   // Handle quantity update
   const handleUpdateQuantity = useCallback((itemId: string, delta: number) => {
     setCart(prev => {
@@ -176,6 +190,7 @@ export default function POSPage() {
       if (item?.isService) {
         if (item.serviceType === 'delivery') setDeliveryEnabled(false)
         if (item.serviceType === 'installation') setInstallationEnabled(false)
+        if (item.serviceType === 'warranty') setWarrantyEnabled(false)
       }
       return prev.filter(i => i.id !== itemId)
     })
@@ -251,6 +266,7 @@ export default function POSPage() {
         setCart([])
         setDeliveryEnabled(false)
         setInstallationEnabled(false)
+        setWarrantyEnabled(false)
         setLogistics({})
         setPaymentReference('')
         
@@ -312,19 +328,26 @@ export default function POSPage() {
             onAddToCart={handleAddToCart}
             getAvailableStock={getAvailableStock}
           />
+          
+          {/* Recommended Products Upsell */}
+          <RecommendedProducts 
+            onAddToCart={handleAddToCart}
+          />
         </div>
       </div>
 
-      {/* Cart Panel */}
-      <div className="w-[400px] p-4 pl-0">
+      {/* Cart Panel - Checkout Dominance */}
+      <div className="w-[420px] p-4 pl-0 sticky top-0 h-full">
         <CartPanel
           items={cart}
           logistics={logistics}
           onLogisticsChange={setLogistics}
           deliveryEnabled={deliveryEnabled}
           installationEnabled={installationEnabled}
+          warrantyEnabled={warrantyEnabled}
           onDeliveryToggle={handleDeliveryToggle}
           onInstallationToggle={handleInstallationToggle}
+          onWarrantyToggle={handleWarrantyToggle}
           onUpdateQuantity={handleUpdateQuantity}
           onRemoveItem={handleRemoveItem}
           onCheckout={handleCheckout}

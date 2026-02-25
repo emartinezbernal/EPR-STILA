@@ -27,20 +27,36 @@ export function createCartItem(
 }
 
 export function createServiceItem(
-  serviceType: 'delivery' | 'installation'
+  serviceType: 'delivery' | 'installation' | 'warranty'
 ): CartItem {
   const service = DEFAULT_SERVICES.find(s => s.type === serviceType)
-  const price = serviceType === 'delivery' ? SERVICE_PRICES.DELIVERY : SERVICE_PRICES.INSTALLATION
-  const taxable = serviceType === 'installation'
+  const price = serviceType === 'delivery' 
+    ? SERVICE_PRICES.DELIVERY 
+    : serviceType === 'installation' 
+      ? SERVICE_PRICES.INSTALLATION 
+      : SERVICE_PRICES.EXTENDED_WARRANTY
+  const taxable = serviceType !== 'delivery'
   
   const subtotal = price
   const tax = taxable ? subtotal * TAX_RATE : 0
   
+  const serviceNames = {
+    delivery: 'Entrega a domicilio',
+    installation: 'Instalación profesional',
+    warranty: 'Garantía extendida 1 año',
+  }
+  
+  const serviceSkus = {
+    delivery: 'SERVICE_DELIVERY',
+    installation: 'SERVICE_INSTALLATION',
+    warranty: 'SERVICE_WARRANTY',
+  }
+  
   return {
     id: crypto.randomUUID(),
     productId: `service-${serviceType}`,
-    name: serviceType === 'delivery' ? 'Entrega a domicilio' : 'Instalación profesional',
-    sku: serviceType === 'delivery' ? 'SERVICE_DELIVERY' : 'SERVICE_INSTALLATION',
+    name: serviceNames[serviceType],
+    sku: serviceSkus[serviceType],
     quantity: 1,
     unitPrice: price,
     discount: 0,

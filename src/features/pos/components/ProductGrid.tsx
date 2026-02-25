@@ -2,17 +2,18 @@
 
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus, Package, AlertTriangle } from 'lucide-react'
+import { Plus, Package, AlertTriangle, Zap } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { Product } from '@/types/database'
 
 interface ProductGridProps {
   products: Product[]
   onAddToCart: (product: Product) => void
+  onInstallSuggested?: (product: Product) => void
   getAvailableStock?: (product: Product) => number
 }
 
-export function ProductGrid({ products, onAddToCart, getAvailableStock }: ProductGridProps) {
+export function ProductGrid({ products, onAddToCart, onInstallSuggested, getAvailableStock }: ProductGridProps) {
   if (products.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-gray-500">
@@ -22,6 +23,20 @@ export function ProductGrid({ products, onAddToCart, getAvailableStock }: Produc
     )
   }
 
+  // Check if product name contains "mirror" or "espejo" to identify mirrors
+  const isMirror = (name: string) => {
+    const lower = name.toLowerCase()
+    return lower.includes('espejo') || lower.includes('mirror') || lower.includes('mirror')
+  }
+
+  const handleAddProduct = (product: Product) => {
+    onAddToCart(product)
+    // Pre-suggest installation for mirrors
+    if (onInstallSuggested && isMirror(product.name)) {
+      onInstallSuggested(product)
+    }
+  }
+
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3">
       {products.map((product) => {
@@ -29,6 +44,7 @@ export function ProductGrid({ products, onAddToCart, getAvailableStock }: Produc
         const totalStock = product.stock ?? 0
         const availableStock = getAvailableStock ? getAvailableStock(product) : totalStock
         const isLowStock = availableStock > 0 && availableStock <= 5
+        const isCriticalStock = availableStock > 0 && availableStock <= 3
         const isOutOfStock = availableStock <= 0
 
         return (
@@ -37,13 +53,13 @@ export function ProductGrid({ products, onAddToCart, getAvailableStock }: Produc
             className={`
               cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5
               ${isOutOfStock ? 'opacity-60' : ''}
-              border-gray-200 hover:border-slate-300
+              ${isCriticalStock ? 'border-2 border-red-400 bg-red-50' : 'border-gray-200 hover:border-slate-300'}
             `}
-            onClick={() => !isOutOfStock && onAddToCart(product)}
+            onClick={() => !isOutOfStock && handleAddProduct(product)}
           >
             <CardContent className="p-3">
               {/* Product Image Placeholder */}
-              <div className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-md mb-3 flex items-center justify-center">
+              <div className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-md mb-3 flex items-center justify-center relative">
                 {product.images && product.images.length > 0 ? (
                   <img 
                     src={product.images[0]} 
@@ -52,6 +68,12 @@ export function ProductGrid({ products, onAddToCart, getAvailableStock }: Produc
                   />
                 ) : (
                   <Package className="h-10 w-10 text-gray-400" />
+                )}
+                {/* Mirror badge */}
+                {isMirror(product.name) && (
+                  <div className="absolute top-1 right-1 bg-blue-500 text-white text-[10px] px-2 py-0.5 rounded-full font-medium">
+                    Espejo
+                  </div>
                 )}
               </div>
 
@@ -79,6 +101,11 @@ export function ProductGrid({ products, onAddToCart, getAvailableStock }: Produc
                       <span className="text-xs text-red-600 font-medium flex items-center">
                         <AlertTriangle className="h-3 w-3 mr-1" />
                         Sin stock
+                      </span>
+                    ) : isCriticalStock ? (
+                      <span className="text-xs text-red-600 font-bold flex items-center bg-red-100 px-2 py-0.5 rounded animate-pulse">
+                        <Zap className="h-3 w-3 mr-1" />
+                        ¡Últimas {availableStock}!
                       </span>
                     ) : isLowStock ? (
                       <span className="text-xs text-amber-600 font-medium flex items-center">
@@ -118,7 +145,7 @@ export function ProductGrid({ products, onAddToCart, getAvailableStock }: Produc
                     className="h-8 w-8 p-0 rounded-full"
                     onClick={(e) => {
                       e.stopPropagation()
-                      onAddToCart(product)
+                      handleAddProduct(product)
                     }}
                   >
                     <Plus className="h-4 w-4" />

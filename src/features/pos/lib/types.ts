@@ -15,13 +15,13 @@ export interface CartItem {
   tax: number
   total: number
   isService?: boolean
-  serviceType?: 'delivery' | 'installation'
+  serviceType?: 'delivery' | 'installation' | 'warranty'
 }
 
 // Service Types
 export interface ServiceOption {
   id: string
-  type: 'delivery' | 'installation'
+  type: 'delivery' | 'installation' | 'warranty'
   name: string
   description: string
   price: number
@@ -80,6 +80,7 @@ export interface SaleResponse {
 export const SERVICE_PRICES = {
   DELIVERY: 350, // $350 MXN
   INSTALLATION: 500, // $500 MXN
+  EXTENDED_WARRANTY: 299, // $299 MXN - 1 año extra de garantía
 } as const
 
 export const DEFAULT_SERVICES: ServiceOption[] = [
@@ -101,4 +102,32 @@ export const DEFAULT_SERVICES: ServiceOption[] = [
     taxable: true,
     enabled: false,
   },
+  {
+    id: 'extended_warranty',
+    type: 'warranty',
+    name: 'Garantía extendida',
+    description: '1 año adicional de garantía',
+    price: SERVICE_PRICES.EXTENDED_WARRANTY,
+    taxable: true,
+    enabled: false,
+  },
 ]
+
+// Extended Warranty type
+export type ServiceType = 'delivery' | 'installation' | 'warranty'
+
+// Customer Quick Entry
+export interface CustomerQuickEntry {
+  name: string
+  phone: string
+  notes?: string
+}
+
+// Recommended Product
+export interface RecommendedProduct {
+  id: string
+  name: string
+  sku: string
+  price: number
+  category: string
+}
