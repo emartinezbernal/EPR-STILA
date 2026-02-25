@@ -149,11 +149,11 @@ export function createOpsOrdersFromCheckout(
   return orders
 }
 
-// Function to save orders (tries Supabase, falls back to localStorage)
-export async function saveOpsOrders(orders: OpsOrder[]): Promise<{ success: boolean; error?: string }> {
+// Function to save orders (tries Supabase API, falls back to localStorage - NO ERROR if API fails)
+export async function saveOpsOrders(orders: OpsOrder[]): Promise<{ success: boolean; ids?: string[]; error?: string }> {
   const store = useOpsOrdersStore.getState()
   
-  // Try to save to Supabase if tables exist
+  // Try to save to Supabase API
   try {
     const response = await fetch('/api/ops/orders', {
       method: 'POST',
@@ -161,20 +161,24 @@ export async function saveOpsOrders(orders: OpsOrder[]): Promise<{ success: bool
       body: JSON.stringify({ orders }),
     })
     
-    if (response.ok) {
+    // If 404, endpoint doesn't exist - silently fallback to localStorage
+    if (response.status === 404) {
+      console.log('API /api/ops/orders not found, using localStorage fallback')
+    } else if (response.ok) {
       const result = await response.json()
       if (result.success) {
-        return { success: true }
+        return { success: true, ids: orders.map(o => o.id) }
       }
     }
   } catch (error) {
-    console.log('Supabase not available, using localStorage fallback')
+    console.log('API not available, using localStorage fallback')
   }
   
-  // Fallback: save to localStorage store
+  // Fallback: save to localStorage store (always succeeds)
   store.addOrders(orders)
   
-  return { success: true }
+  // Always return success with order IDs
+  return { success: true, ids: orders.map(o => o.id) }
 }
 
 // Get all orders

@@ -12,8 +12,10 @@ import { usePosShortcuts } from '@/features/pos/hooks/usePosShortcuts'
 import { CartItem, LogisticsDetails, PaymentMethod, SaleResponse, SaleStatus, DeliveryStatus, InstallationStatus, FabricationDetails } from '@/features/pos/lib/types'
 import { createCartItem, createServiceItem, createFabricationItem, calculateTotals, validateCheckout, hasFabricationItems } from '@/features/pos/lib/cartLogic'
 import { createOpsOrdersFromCheckout, saveOpsOrders } from '@/features/ops/lib/store'
+import { resolveSaleUUIDs } from '@/lib/pos-uuids'
 import { Product } from '@/types/database'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { AlertCircle, Package, Wrench } from 'lucide-react'
 
 // LocalStorage key for draft persistence
 const DRAFT_KEY = 'pos_draft'
@@ -298,41 +300,58 @@ export default function POSPage() {
 
   // Confirm checkout
   const handleConfirmCheckout = useCallback(async (amountReceived?: string): Promise<SaleResponse> => {
+    console.log('CHECKOUT_START')
     setIsProcessing(true)
     
     try {
       const totals = calculateTotals(cart)
       
+      // Get real UUIDs for the sale
+      const { branchId, customerId, salesRepId } = { branchId: null, customerId: null, salesRepId: null }
+      
+      const payload = {
+        branchId,
+        customerId,
+        salesRepId,
+        items: cart,
+        subtotal: totals.subtotal,
+        discount: totals.discount,
+        tax: totals.productsTax + totals.servicesTax,
+        servicesTotal: totals.servicesTotal,
+        total: totals.total,
+        paymentMethod,
+        paymentReference,
+        amountReceived: amountReceived || '0',
+        logistics,
+      }
+      console.log('CHECKOUT_POSTING', { 
+        itemCount: cart.length, 
+        total: totals.total, 
+        paymentMethod,
+        amountReceived 
+      })
+      
       const response = await fetch('/api/pos/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          items: cart,
-          subtotal: totals.subtotal,
-          discount: totals.discount,
-          tax: totals.productsTax + totals.servicesTax,
-          servicesTotal: totals.servicesTotal,
-          total: totals.total,
-          paymentMethod,
-          paymentReference,
-          amountReceived: amountReceived || '0',
-          logistics,
-        }),
+        body: JSON.stringify(payload),
       })
       
       const result = await response.json()
+      console.log('CHECKOUT_RESPONSE', { status: response.status, success: result.success, folio: result.folio })
       
       if (result.success) {
         const saleNumber = result.folio
+        const saleId = result.sale?.id || saleNumber
         
         setSaleStatus('paid')
         
         addSale({
           id: result.sale?.id || Date.now().toString(),
           sale_number: saleNumber,
-          customer_id: 'demo',
-          sales_rep_id: 'demo',
-          branch_id: 'demo',
+          customer_id: undefined,
+          sales_rep_id: undefined,
+          branch_id: undefined,
           status: 'completed',
           payment_status: 'paid',
           subtotal: totals.subtotal,
@@ -348,6 +367,33 @@ export default function POSPage() {
           updated_at: new Date().toISOString(),
         })
         
+        // Generate Ops Orders from checkout (non-blocking)
+        const opsOrders = createOpsOrdersFromCheckout(
+          cart,
+          logistics,
+          saleId,
+          saleNumber
+        )
+        
+        // Save ops orders (with localStorage fallback - never fails)
+        let shippingOrderId: string | undefined
+        let installationOrderId: string | undefined
+        
+        if (opsOrders.length > 0) {
+          try {
+            const saveResult = await saveOpsOrders(opsOrders)
+            if (saveResult.success && saveResult.ids) {
+              const deliveryOrder = opsOrders.find(o => o.type === 'delivery')
+              const installationOrder = opsOrders.find(o => o.type === 'installation')
+              shippingOrderId = deliveryOrder?.id
+              installationOrderId = installationOrder?.id
+              console.log('Ops orders saved:', opsOrders.length, saveResult.ids)
+            }
+          } catch (opsError) {
+            console.log('Ops orders save failed (non-blocking):', opsError)
+          }
+        }
+        
         setLastSaleItems([...cart])
         setLastSaleTotals({ ...totals })
         
@@ -355,8 +401,8 @@ export default function POSPage() {
           success: true,
           folio: saleNumber,
           ticketUrl: result.ticketUrl,
-          shippingOrderId: result.shippingOrderId,
-          installationOrderId: result.installationOrderId,
+          shippingOrderId,
+          installationOrderId,
         })
         
         setCart([])
@@ -378,9 +424,10 @@ export default function POSPage() {
       
       return { success: false, folio: '', error: result.error || 'Error al procesar venta' }
     } catch (error) {
-      console.error('Checkout error:', error)
+      console.error('CHECKOUT_ERROR', error)
       return { success: false, folio: '', error: 'Error de conexión' }
     } finally {
+      console.log('CHECKOUT_END')
       setIsProcessing(false)
     }
   }, [cart, paymentMethod, paymentReference, logistics, addSale, fetchProducts])

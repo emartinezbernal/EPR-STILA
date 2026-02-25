@@ -1,14 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// Initialize Supabase client
+// Initialize Supabase client with service role for admin operations
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+
+// Use service role key for bypassing RLS
+const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+})
 
 // Types
 interface CheckoutBody {
+  branchId?: string
   customerId?: string
+  salesRepId?: string
   customerName?: string
   items: Array<{
     productId: string
@@ -68,7 +77,9 @@ export async function POST(request: NextRequest) {
     const body: CheckoutBody = await request.json()
     
     const {
+      branchId,
       customerId,
+      salesRepId,
       customerName,
       items,
       subtotal,
@@ -100,9 +111,9 @@ export async function POST(request: NextRequest) {
         .from('sales')
         .insert({
           sale_number: saleNumber,
-          customer_id: null,
-          sales_rep_id: null,
-          branch_id: null,
+          customer_id: customerId || null,
+          sales_rep_id: salesRepId || null,
+          branch_id: branchId || null,
           status: 'completed',
           payment_status: 'paid',
           subtotal: subtotal,

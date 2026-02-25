@@ -103,6 +103,7 @@ export function CheckoutDrawer({
   }
 
   const handleConfirm = async () => {
+    console.log('CLICK_CONFIRM', { paymentMethod, amountReceived, total: totals.total, needsMoreMoney, paymentReference })
     setErrors([])
     
     const newErrors: string[] = []
@@ -110,15 +111,18 @@ export function CheckoutDrawer({
     if (paymentMethod === 'EFECTIVO') {
       if (!amountReceived || parseFloat(amountReceived) < totals.total) {
         newErrors.push('El monto recibido debe ser mayor o igual al total')
+        console.log('BLOCKED_REASON', 'EFECTIVO: amountReceived is empty or less than total')
       }
     }
     
     if (paymentMethod === 'TRANSFERENCIA' && !paymentReference.trim()) {
       newErrors.push('La referencia de transferencia es requerida')
+      console.log('BLOCKED_REASON', 'TRANSFERENCIA: paymentReference is empty')
     }
     
     if (items.length === 0) {
       newErrors.push('El carrito está vacío')
+      console.log('BLOCKED_REASON', 'Cart is empty')
     }
     
     const hasDelivery = items.some(i => i.isService && i.serviceType === 'delivery')
@@ -126,14 +130,17 @@ export function CheckoutDrawer({
     
     if (hasDelivery && !logistics.deliveryAddress) {
       newErrors.push('La dirección de entrega es requerida')
+      console.log('BLOCKED_REASON', 'Delivery is enabled but deliveryAddress is missing')
     }
     
     if (hasInstallation && (!logistics.installationAddress || !logistics.installationContactName || !logistics.installationContactPhone)) {
       newErrors.push('Los datos de instalación son requeridos')
+      console.log('BLOCKED_REASON', 'Installation is enabled but installation data is incomplete')
     }
     
     if (newErrors.length > 0) {
       setErrors(newErrors)
+      console.log('BLOCKED_REASON', 'Validation errors found:', newErrors)
       return
     }
     
@@ -142,6 +149,7 @@ export function CheckoutDrawer({
       setSavedAmountReceived(amountNum)
     }
     
+    console.log('CHECKOUT_START')
     const response = await onConfirm(amountReceived || '0')
     setSaleResponse(response)
   }
@@ -390,6 +398,7 @@ export function CheckoutDrawer({
         {!saleResponse?.success && (
           <div className="p-4 border-t bg-gray-50">
             <Button
+              type="button"
               className="w-full h-12 text-lg font-semibold"
               onClick={handleConfirm}
               disabled={isProcessing || (paymentMethod === 'EFECTIVO' && needsMoreMoney)}
