@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
       scheduled_date: order.scheduledDate,
       time_window: order.timeWindow,
       address: order.address,
-      reference: order.reference,
+      reference: order.references,
       contact_name: order.contactName,
       contact_phone: order.contactPhone,
       wall_type: order.wallType,
