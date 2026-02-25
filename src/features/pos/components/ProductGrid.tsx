@@ -2,13 +2,13 @@
 
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus, Package, AlertTriangle, Zap } from 'lucide-react'
+import { Plus, Package, AlertTriangle, Zap, Factory } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { Product } from '@/types/database'
 
 interface ProductGridProps {
   products: Product[]
-  onAddToCart: (product: Product) => void
+  onAddToCart: (product: Product, isFabrication?: boolean) => void
   onInstallSuggested?: (product: Product) => void
   getAvailableStock?: (product: Product) => number
 }
@@ -26,11 +26,11 @@ export function ProductGrid({ products, onAddToCart, onInstallSuggested, getAvai
   // Check if product name contains "mirror" or "espejo" to identify mirrors
   const isMirror = (name: string) => {
     const lower = name.toLowerCase()
-    return lower.includes('espejo') || lower.includes('mirror') || lower.includes('mirror')
+    return lower.includes('espejo') || lower.includes('mirror')
   }
 
-  const handleAddProduct = (product: Product) => {
-    onAddToCart(product)
+  const handleAddProduct = (product: Product, isFabrication = false) => {
+    onAddToCart(product, isFabrication)
     // Pre-suggest installation for mirrors
     if (onInstallSuggested && isMirror(product.name)) {
       onInstallSuggested(product)
@@ -46,16 +46,19 @@ export function ProductGrid({ products, onAddToCart, onInstallSuggested, getAvai
         const isLowStock = availableStock > 0 && availableStock <= 5
         const isCriticalStock = availableStock > 0 && availableStock <= 3
         const isOutOfStock = availableStock <= 0
+        const isWarningStock = totalStock > 0 && totalStock <= 3 && availableStock > 0
 
         return (
           <Card
             key={product.id}
             className={`
               cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5
-              ${isOutOfStock ? 'opacity-60' : ''}
-              ${isCriticalStock ? 'border-2 border-red-400 bg-red-50' : 'border-gray-200 hover:border-slate-300'}
+              ${isOutOfStock ? 'opacity-75 border-2 border-dashed border-orange-300 bg-orange-50' : ''}
+              ${isCriticalStock ? 'border-2 border-red-400 bg-red-50' : ''}
+              ${isWarningStock ? 'border-2 border-amber-300 bg-amber-30' : ''}
+              ${!isOutOfStock && !isCriticalStock && !isWarningStock ? 'border-gray-200 hover:border-slate-300' : ''}
             `}
-            onClick={() => !isOutOfStock && handleAddProduct(product)}
+            onClick={() => handleAddProduct(product, isOutOfStock)}
           >
             <CardContent className="p-3">
               {/* Product Image Placeholder */}
@@ -73,6 +76,13 @@ export function ProductGrid({ products, onAddToCart, onInstallSuggested, getAvai
                 {isMirror(product.name) && (
                   <div className="absolute top-1 right-1 bg-blue-500 text-white text-[10px] px-2 py-0.5 rounded-full font-medium">
                     Espejo
+                  </div>
+                )}
+                {/* Fabrication badge - shows when out of stock */}
+                {isOutOfStock && (
+                  <div className="absolute top-1 left-1 bg-orange-500 text-white text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center">
+                    <Factory className="h-3 w-3 mr-1" />
+                    Bajo pedido
                   </div>
                 )}
               </div>
@@ -98,9 +108,9 @@ export function ProductGrid({ products, onAddToCart, onInstallSuggested, getAvai
                   {getAvailableStock ? (
                     // Show available stock (considering cart reservations)
                     isOutOfStock ? (
-                      <span className="text-xs text-red-600 font-medium flex items-center">
-                        <AlertTriangle className="h-3 w-3 mr-1" />
-                        Sin stock
+                      <span className="text-xs text-orange-600 font-medium flex items-center bg-orange-100 px-2 py-0.5 rounded">
+                        <Factory className="h-3 w-3 mr-1" />
+                        Bajo pedido
                       </span>
                     ) : isCriticalStock ? (
                       <span className="text-xs text-red-600 font-bold flex items-center bg-red-100 px-2 py-0.5 rounded animate-pulse">
@@ -112,6 +122,11 @@ export function ProductGrid({ products, onAddToCart, onInstallSuggested, getAvai
                         <AlertTriangle className="h-3 w-3 mr-1" />
                         {availableStock} disponibles
                       </span>
+                    ) : isWarningStock ? (
+                      <span className="text-xs text-amber-600 font-medium flex items-center bg-amber-50 px-2 py-0.5 rounded">
+                        <AlertTriangle className="h-3 w-3 mr-1" />
+                        Stock bajo
+                      </span>
                     ) : (
                       <span className="text-xs text-gray-500">
                         {availableStock} en stock
@@ -122,14 +137,19 @@ export function ProductGrid({ products, onAddToCart, onInstallSuggested, getAvai
                     totalStock === undefined ? (
                       <span className="text-xs text-gray-500">Disponible</span>
                     ) : isOutOfStock ? (
-                      <span className="text-xs text-red-600 font-medium flex items-center">
-                        <AlertTriangle className="h-3 w-3 mr-1" />
-                        Sin stock
+                      <span className="text-xs text-orange-600 font-medium flex items-center bg-orange-100 px-2 py-0.5 rounded">
+                        <Factory className="h-3 w-3 mr-1" />
+                        Bajo pedido
                       </span>
                     ) : isLowStock ? (
                       <span className="text-xs text-amber-600 font-medium flex items-center">
                         <AlertTriangle className="h-3 w-3 mr-1" />
                         {totalStock} disponibles
+                      </span>
+                    ) : isWarningStock ? (
+                      <span className="text-xs text-amber-600 font-medium flex items-center bg-amber-50 px-2 py-0.5 rounded">
+                        <AlertTriangle className="h-3 w-3 mr-1" />
+                        Stock bajo
                       </span>
                     ) : (
                       <span className="text-xs text-gray-500">
@@ -139,18 +159,20 @@ export function ProductGrid({ products, onAddToCart, onInstallSuggested, getAvai
                   )}
                 </div>
 
-                {!isOutOfStock && (
-                  <Button
-                    size="sm"
-                    className="h-8 w-8 p-0 rounded-full"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleAddProduct(product)
-                    }}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                )}
+                <Button
+                  size="sm"
+                  className={`h-8 w-8 p-0 rounded-full ${
+                    isOutOfStock 
+                      ? 'bg-orange-500 hover:bg-orange-600' 
+                      : ''
+                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleAddProduct(product, isOutOfStock)
+                  }}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
               </div>
             </CardContent>
           </Card>

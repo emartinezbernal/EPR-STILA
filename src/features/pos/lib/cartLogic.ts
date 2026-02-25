@@ -1,4 +1,4 @@
-import { CartItem, LogisticsDetails, DEFAULT_SERVICES, SERVICE_PRICES } from './types'
+import { CartItem, LogisticsDetails, DEFAULT_SERVICES, SERVICE_PRICES, FabricationDetails } from './types'
 
 const TAX_RATE = 0.16 // 16% VAT
 
@@ -29,7 +29,6 @@ export function createCartItem(
 export function createServiceItem(
   serviceType: 'delivery' | 'installation' | 'warranty'
 ): CartItem {
-  const service = DEFAULT_SERVICES.find(s => s.type === serviceType)
   const price = serviceType === 'delivery' 
     ? SERVICE_PRICES.DELIVERY 
     : serviceType === 'installation' 
@@ -65,6 +64,33 @@ export function createServiceItem(
     total: subtotal + tax,
     isService: true,
     serviceType,
+  }
+}
+
+// Create a fabrication/pre-order item (for products with no stock)
+export function createFabricationItem(
+  product: { id: string; name: string; sku: string; barcode?: string; base_price: number; stock?: number },
+  quantity: number,
+  fabricationDetails: FabricationDetails
+): CartItem {
+  const subtotal = product.base_price * quantity
+  const tax = subtotal * TAX_RATE
+  
+  return {
+    id: crypto.randomUUID(),
+    productId: product.id,
+    product: product as any,
+    name: product.name,
+    sku: product.sku,
+    barcode: product.barcode,
+    quantity,
+    unitPrice: product.base_price,
+    discount: 0,
+    subtotal,
+    tax,
+    total: subtotal + tax,
+    isService: false,
+    fabricationDetails,
   }
 }
 
@@ -132,33 +158,49 @@ export function validateCheckout(items: CartItem[], logistics: LogisticsDetails)
     errors.push('El carrito está vacío')
   }
   
-  // Check stock for each item
+  // Check stock for each item (only for non-fabrication items)
   items.forEach(item => {
-    if (!item.isService && item.product) {
+    if (!item.isService && item.product && !item.fabricationDetails?.isFabrication) {
       const availableStock = item.product.stock || 0
       if (item.quantity > availableStock) {
         errors.push(`Stock insuficiente para ${item.name}`)
+      }
+    }
+    
+    // Validate fabrication items
+    if (item.fabricationDetails?.isFabrication) {
+      if (!item.fabricationDetails.promisedDate) {
+        errors.push(`Fecha promesa requerida para ${item.name}`)
+      }
+      if (item.fabricationDetails.advanceRequired && !item.fabricationDetails.advancePayment) {
+        errors.push(`Anticipo requerido para ${item.name}`)
       }
     }
   })
   
   // Validate delivery logistics
   if (hasDeliveryService(items)) {
-    if (!logistics.deliveryAddress) {
+    if (!logistics.deliveryAddress?.trim()) {
       errors.push('La dirección de entrega es requerida')
+    }
+    if (!logistics.deliveryDate) {
+      errors.push('La fecha de entrega es requerida')
     }
   }
   
   // Validate installation logistics
   if (hasInstallationService(items)) {
-    if (!logistics.installationAddress) {
+    if (!logistics.installationAddress?.trim()) {
       errors.push('La dirección de instalación es requerida')
     }
-    if (!logistics.installationContactName) {
-      errors.push('El contacto de instalación es requerido')
+    if (!logistics.installationContactName?.trim()) {
+      errors.push('El nombre de contacto es requerido')
     }
-    if (!logistics.installationContactPhone) {
+    if (!logistics.installationContactPhone?.trim()) {
       errors.push('El teléfono de contacto es requerido')
+    }
+    if (!logistics.installationDate) {
+      errors.push('La fecha de instalación es requerida')
     }
   }
   
@@ -166,4 +208,14 @@ export function validateCheckout(items: CartItem[], logistics: LogisticsDetails)
     valid: errors.length === 0,
     errors,
   }
+}
+
+// Check if any item in cart is a fabrication/pre-order item
+export function hasFabricationItems(items: CartItem[]): boolean {
+  return items.some(item => item.fabricationDetails?.isFabrication === true)
+}
+
+// Get all fabrication items from cart
+export function getFabricationItems(items: CartItem[]): CartItem[] {
+  return items.filter(item => item.fabricationDetails?.isFabrication === true)
 }

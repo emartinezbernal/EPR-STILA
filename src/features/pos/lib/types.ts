@@ -1,5 +1,37 @@
 import { Product, Customer, Sale } from '@/types/database'
 
+// Operation Status Types
+export type SaleStatus = 'draft' | 'paid' | 'invoiced'
+export type DeliveryStatus = 'pending' | 'en_ruta' | 'delivered'
+export type InstallationStatus = 'scheduled' | 'in_progress' | 'completed' | 'issue'
+
+// Wall Types for Installation
+export type WallType = 'concreto' | 'madera' | 'tablaroca' | 'ladrillo' | 'otro'
+
+// Time Windows for Delivery/Installation
+export const TIME_WINDOWS = [
+  { id: 'manana', label: 'Mañana (9am - 12pm)', start: '09:00', end: '12:00' },
+  { id: 'tarde', label: 'Tarde (12pm - 6pm)', start: '12:00', end: '18:00' },
+  { id: 'noche', label: 'Noche (6pm - 9pm)', start: '18:00', end: '21:00' },
+] as const
+
+// Wall Types Array
+export const WALL_TYPES: { id: WallType; label: string }[] = [
+  { id: 'concreto', label: 'Concreto / Cemento' },
+  { id: 'madera', label: 'Madera' },
+  { id: 'tablaroca', label: 'Tablaroca / Yeso' },
+  { id: 'ladrillo', label: 'Ladrillo' },
+  { id: 'otro', label: 'Otro' },
+]
+
+// Manufacturing/Pre-order Details (UI only)
+export interface FabricationDetails {
+  isFabrication: boolean
+  promisedDate?: string
+  advancePayment?: number
+  advanceRequired: boolean
+}
+
 // Cart Item Types
 export interface CartItem {
   id: string
@@ -16,6 +48,8 @@ export interface CartItem {
   total: number
   isService?: boolean
   serviceType?: 'delivery' | 'installation' | 'warranty'
+  // Manufacturing/Pre-order fields (UI only)
+  fabricationDetails?: FabricationDetails
 }
 
 // Service Types
@@ -36,6 +70,8 @@ export interface LogisticsDetails {
   deliveryCity?: string
   deliveryDate?: string
   deliveryTime?: string
+  deliveryTimeWindow?: string // 'manana' | 'tarde' | 'noche'
+  deliveryReferences?: string // References for delivery location
   deliveryNotes?: string
   
   // Installation
@@ -45,6 +81,8 @@ export interface LogisticsDetails {
   installationContactPhone?: string
   installationDate?: string
   installationTime?: string
+  installationTimeWindow?: string // 'manana' | 'tarde' | 'noche'
+  installationWallType?: WallType // Wall type for installation
   installationNotes?: string
 }
 

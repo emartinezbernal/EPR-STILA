@@ -6,6 +6,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { 
   Truck, 
   Wrench, 
@@ -18,7 +25,7 @@ import {
   Minus
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
-import { LogisticsDetails, SERVICE_PRICES } from '../lib/types'
+import { LogisticsDetails, SERVICE_PRICES, WallType } from '../lib/types'
 
 interface ServicesSectionProps {
   logistics: LogisticsDetails
@@ -28,6 +35,22 @@ interface ServicesSectionProps {
   onDeliveryToggle: (enabled: boolean) => void
   onInstallationToggle: (enabled: boolean) => void
 }
+
+// Wall types array
+const WALL_TYPES = [
+  { id: 'concreto', label: 'Concreto / Cemento' },
+  { id: 'madera', label: 'Madera' },
+  { id: 'tablaroca', label: 'Tablaroca / Yeso' },
+  { id: 'ladrillo', label: 'Ladrillo' },
+  { id: 'otro', label: 'Otro' },
+] as const
+
+// Time windows
+const TIME_WINDOWS = [
+  { id: 'manana', label: 'Mañana (9am - 12pm)' },
+  { id: 'tarde', label: 'Tarde (12pm - 6pm)' },
+  { id: 'noche', label: 'Noche (6pm - 9pm)' },
+] as const
 
 export function ServicesSection({
   logistics,
@@ -94,9 +117,23 @@ export function ServicesSection({
                 className="h-9 text-sm bg-white border-slate-300 focus:border-blue-500"
               />
             </div>
+            
+            {/* References field for delivery */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-slate-600">
+                Referencias
+              </Label>
+              <Input
+                placeholder="Entre calles, color de casa, etc."
+                value={logistics.deliveryReferences || ''}
+                onChange={(e) => onLogisticsChange({ ...logistics, deliveryReferences: e.target.value })}
+                className="h-9 text-sm bg-white border-slate-300 focus:border-blue-500"
+              />
+            </div>
+            
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-slate-600">Fecha</Label>
+                <Label className="text-xs font-medium text-slate-600">Fecha *</Label>
                 <Input
                   type="date"
                   value={logistics.deliveryDate || ''}
@@ -105,13 +142,22 @@ export function ServicesSection({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-slate-600">Hora</Label>
-                <Input
-                  type="time"
-                  value={logistics.deliveryTime || ''}
-                  onChange={(e) => onLogisticsChange({ ...logistics, deliveryTime: e.target.value })}
-                  className="h-9 text-sm bg-white border-slate-300"
-                />
+                <Label className="text-xs font-medium text-slate-600">Ventana horaria</Label>
+                <Select 
+                  value={logistics.deliveryTimeWindow || ''}
+                  onValueChange={(value) => onLogisticsChange({ ...logistics, deliveryTimeWindow: value })}
+                >
+                  <SelectTrigger className="h-9 text-sm bg-white border-slate-300">
+                    <SelectValue placeholder="Seleccionar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TIME_WINDOWS.map((tw) => (
+                      <SelectItem key={tw.id} value={tw.id}>
+                        {tw.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="space-y-1.5">
@@ -196,7 +242,7 @@ export function ServicesSection({
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-slate-600">Fecha</Label>
+                <Label className="text-xs font-medium text-slate-600">Fecha *</Label>
                 <Input
                   type="date"
                   value={logistics.installationDate || ''}
@@ -205,15 +251,45 @@ export function ServicesSection({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-slate-600">Hora</Label>
-                <Input
-                  type="time"
-                  value={logistics.installationTime || ''}
-                  onChange={(e) => onLogisticsChange({ ...logistics, installationTime: e.target.value })}
-                  className="h-9 text-sm bg-white border-slate-300"
-                />
+                <Label className="text-xs font-medium text-slate-600">Ventana horaria</Label>
+                <Select 
+                  value={logistics.installationTimeWindow || ''}
+                  onValueChange={(value) => onLogisticsChange({ ...logistics, installationTimeWindow: value })}
+                >
+                  <SelectTrigger className="h-9 text-sm bg-white border-slate-300">
+                    <SelectValue placeholder="Seleccionar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TIME_WINDOWS.map((tw) => (
+                      <SelectItem key={tw.id} value={tw.id}>
+                        {tw.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
+            
+            {/* Wall Type Selection */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-slate-600">Tipo de muro</Label>
+              <Select 
+                value={logistics.installationWallType || ''}
+                onValueChange={(value) => onLogisticsChange({ ...logistics, installationWallType: value as WallType })}
+              >
+                <SelectTrigger className="h-9 text-sm bg-white border-slate-300">
+                  <SelectValue placeholder="Seleccionar tipo de muro" />
+                </SelectTrigger>
+                <SelectContent>
+                  {WALL_TYPES.map((wt) => (
+                    <SelectItem key={wt.id} value={wt.id}>
+                      {wt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
             <div className="space-y-1.5">
               <Label className="text-xs font-medium text-slate-600">Notas</Label>
               <Input
