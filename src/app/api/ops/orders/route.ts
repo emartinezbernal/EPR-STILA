@@ -1,17 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-// Initialize Supabase client with service role for admin operations
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-
-// Use service role key for bypassing RLS
-const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
-  }
-})
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
 // Types matching the frontend
 interface OpsOrderInput {
@@ -38,14 +26,43 @@ interface CheckoutBody {
   orders: OpsOrderInput[]
 }
 
-export async function POST(request: NextRequest) {
-  try {
-    const body: CheckoutBody = await request.json()
-    const { orders } = body
+// Create admin client at runtime (not at module level to avoid build errors)
+function getAdminClient(): SupabaseClient | null {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-    if (!orders || orders.length === 0) {
+  if (!url || !key) {
+    return null
+  }
+
+  return createClient(url, key, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  })
+}
+
+export async function POST(request: NextRequest) {
+  // Get admin client at runtime
+  const supabase = getAdminClient()
+
+  if (!supabase) {
+    return NextResponse.json(
+      { success: false, error: "Missing SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_URL in server env" },
+      { status: 500 }
+    )
+  }
+
+  try {
+    // Support both { orders: [...] } and direct array
+    let orders: OpsOrderInput[]
+    const body = await request.json()
+    orders = Array.isArray(body) ? body : body.orders
+
+    if (!orders || !Array.isArray(orders) || orders.length === 0) {
       return NextResponse.json(
-        { success: false, error: 'No orders provided' },
+        { success: false, error: "Invalid orders payload" },
         { status: 400 }
       )
     }
@@ -77,22 +94,20 @@ export async function POST(request: NextRequest) {
       .select('id')
 
     if (error) {
-      console.error('Ops orders insert error:', error)
       return NextResponse.json(
-        { success: false, error: error.message },
+        { success: false, error: error.message, details: error.details },
         { status: 500 }
       )
     }
 
-    const orderIds = data?.map(o => o.id) || orders.map(o => o.id)
+    const orderIds = data?.map((o: { id: string }) => o.id) || orders.map(o => o.id)
 
     return NextResponse.json({
       success: true,
-      orderIds,
+      ids: orderIds,
     })
 
   } catch (error) {
-    console.error('Ops orders route error:', error)
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

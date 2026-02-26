@@ -1,3 +1,6 @@
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 import { NextRequest, NextResponse } from 'next/server'
 
 interface TicketQueryParams {
@@ -65,7 +68,6 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Error generating ticket:', error)
     return NextResponse.json(
       { error: 'Error generating ticket' },
       { status: 500 }
