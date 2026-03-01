@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { Sidebar } from '@/components/layout/sidebar'
+import { AuthProvider } from '@/providers/auth-provider'
 
 export const metadata: Metadata = {
   title: 'ERP STILA - Enterprise Resource Planning',
@@ -15,10 +16,12 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className="flex">
-        <Sidebar />
-        <main className="flex-1 ml-64">
-          {children}
-        </main>
+        <AuthProvider>
+          <Sidebar />
+          <main className="flex-1 ml-64">
+            {children}
+          </main>
+        </AuthProvider>
       </body>
     </html>
   )
