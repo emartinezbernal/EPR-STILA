@@ -1,74 +1,50 @@
 # Soluciones: Cambios no se reflejan en producción
 
-Después de hacer push a GitHub, los cambios no aparecen en Vercel. Aquí están las soluciones:
+**Estado del código:** ✅ El build local fue exitoso (24/24 páginas compiladas)
+
+**El problema:** Los cambios suben a GitHub pero Vercel tiene error de build.
 
 ---
 
-## 1. 🔄 Forzar Redeploy en Vercel (Más probable)
-- Ve a: https://vercel.com/dashboard
-- Selecciona el proyecto **epr-stila**
-- Ve a la pestaña **Deployments**
-- Haz clic en el botón "..." del último deployment y selecciona **"Redeploy"**
+## 🔧 Solución: Configurar Variables de Entorno en Vercel
+
+Vercel necesita las variables de entorno de Supabase para hacer build. 
+
+### Pasos para configurar:
+
+1. Ve a: https://vercel.com/dashboard
+2. Selecciona el proyecto **epr-stila**
+3. Ve a **Settings** → **Environment Variables**
+4. Agrega estas variables:
+
+| Variable | Valor |
+|----------|-------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Tu URL de Supabase (ej: https://xxxxx.supabase.co) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Tu anon key de Supabase |
+
+5. Después de agregar las variables, ve a **Deployments** y haz **Redeploy**
 
 ---
 
-## 2. 🌳 Verificar la rama de Git
-- Asegúrate de que hiciste push a la rama correcta (`main` o `master`)
-- En Vercel: **Settings** → **Git** → verifica la rama de producción
+## ✅ Verificaciones adicionales
 
----
-
-## 3. 🧹 Limpiar cache local y rebuild
+### 1. Build local exitoso
+El código compila correctamente:
 ```
-bash
-rm -rf .next
-rm -rf node_modules
-npm install
-npm run build
-```
-
----
-
-## 4. 🔍 Verificar errores de build
-```
-bash
-npm run build
-```
-Si hay errores, corrígelos antes de hacer push.
-
----
-
-## 5. ✅ Verificar que el push fue exitoso
-```
-bash
-git status
-git log --oneline -5
-```
-Asegúrate de que los commits están en la rama correcta.
-
----
-
-## 6. 📋 Revisar logs de build en Vercel
-- Ve a **Deployments** → selecciona el deployment
-- Revisa la pestaña **Build Output** para ver si hay errores
-
----
-
-## 7. 💻 Forzar deployment con Vercel CLI
-Si tienes el CLI de Vercel instalado:
-```
-bash
-vercel --force
+✓ Compiled successfully
+✓ Generating static pages (24/24)
 ```
 
+### 2. Rama correcta
+- ✅ Rama `main` está configurada en Vercel
+- ✅ Commits subidos a origin/main
+
+### 3. Si el problema persiste
+- Ve a **Deployments** en Vercel
+- Revisa los logs de error en la pestaña **Build Output**
+- Verifica que las variables de entorno tengan los valores correctos (sin comillas extras)
+
 ---
 
-## 8. 🔀 Verificar GitHub Actions (si aplica)
-- Ve a la pestaña **Actions** en GitHub
-- Verifica que el workflow de despliegue se ejecutó correctamente
-
----
-
-## RESUMEN
-El problema más común es que Vercel no detecte automáticamente los cambios o necesite un redeploy. 
-**Prueba primero con el punto 1 (Redeploy).**
+## 📝 Notas
+- El archivo `.env.example` fue agregado al proyecto como referencia
