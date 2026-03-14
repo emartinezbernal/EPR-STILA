@@ -26,11 +26,45 @@ export function getRedirectPath(role: string): string {
       return '/pos'
     case 'cashier':
       return '/pos'
+    case 'sales_user':
+      return '/pos'
     case 'finance_admin':
       return '/sales'
     default:
       return '/dashboard'
   }
+}
+
+// Demo users for testing
+const DEMO_USERS: Record<string, { password: string; profile: UserProfile }> = {
+  'admin@stila.com': {
+    password: 'demo123',
+    profile: {
+      id: 'demo-admin-id',
+      user_id: 'demo-admin-id',
+      email: 'admin@stila.com',
+      role: 'admin' as UserRole,
+      first_name: 'Admin',
+      last_name: 'STILA',
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }
+  },
+  'ventas@stila.com': {
+    password: 'demo123',
+    profile: {
+      id: 'demo-sales-id',
+      user_id: 'demo-sales-id',
+      email: 'ventas@stila.com',
+      role: 'sales_user' as UserRole,
+      first_name: 'Vendedor',
+      last_name: 'STILA',
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }
+  },
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -116,15 +150,30 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 }))
 
-// Login function
+// Login function with demo mode fallback
 export async function login(email: string, password: string): Promise<{ success: boolean; error?: string }> {
   try {
+    // Try demo login first
+    const demoUser = DEMO_USERS[email.toLowerCase()]
+    if (demoUser && demoUser.password === password) {
+      authLogger.success(demoUser.profile.id)
+      useAuthStore.getState().setUser(demoUser.profile)
+      // Save to localStorage for persistence
+      localStorage.setItem('demo_user', JSON.stringify(demoUser.profile))
+      return { success: true }
+    }
+
+    // If not demo user, try Supabase auth
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
     
     if (error) {
+      // If Supabase fails, check if it's a demo user with wrong password
+      if (demoUser) {
+        return { success: false, error: 'Contraseña incorrecta' }
+      }
       authLogger.failure(email, error.message)
       return { success: false, error: error.message }
     }
@@ -153,9 +202,27 @@ export async function logout(): Promise<void> {
       authLogger.logout(user.id)
     }
     
+    // Clear demo user from localStorage
+    localStorage.removeItem('demo_user')
+    
     await supabase.auth.signOut()
     useAuthStore.getState().setUser(null)
   } catch (error) {
     console.error('Error logging out:', error)
   }
+}
+
+// Check for stored demo user on load
+export function checkStoredDemoUser(): UserProfile | null {
+  if (typeof window === 'undefined') return null
+  
+  const stored = localStorage.getItem('demo_user')
+  if (stored) {
+    try {
+      return JSON.parse(stored)
+    } catch {
+      return null
+    }
+  }
+  return null
 }
