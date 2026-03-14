@@ -1,177 +1,145 @@
-# Supabase CLI
+# ERP STILA - Enterprise Resource Planning System
 
-[![Coverage Status](https://coveralls.io/repos/github/supabase/cli/badge.svg?branch=main)](https://coveralls.io/github/supabase/cli?branch=main) [![Bitbucket Pipelines](https://img.shields.io/bitbucket/pipelines/supabase-cli/setup-cli/master?style=flat-square&label=Bitbucket%20Canary)](https://bitbucket.org/supabase-cli/setup-cli/pipelines) [![Gitlab Pipeline Status](https://img.shields.io/gitlab/pipeline-status/sweatybridge%2Fsetup-cli?label=Gitlab%20Canary)
-](https://gitlab.com/sweatybridge/setup-cli/-/pipelines)
+A production-grade ERP web application with full data governance, security, internal control, auditability, and operational management.
 
-[Supabase](https://supabase.io) is an open source Firebase alternative. We're building the features of Firebase using enterprise-grade open source tools.
+## Tech Stack
 
-This repository contains all the functionality for Supabase CLI.
+- **Frontend**: Next.js 14 (App Router), TypeScript, TailwindCSS, shadcn/ui
+- **Backend**: Supabase Postgres, RLS, RPC functions
+- **Deployment**: Vercel
 
-- [x] Running Supabase locally
-- [x] Managing database migrations
-- [x] Creating and deploying Supabase Functions
-- [x] Generating types directly from your database schema
-- [x] Making authenticated HTTP requests to [Management API](https://supabase.com/docs/reference/api/introduction)
+## Features
 
-## Getting started
+### Core Modules
+- Product Catalog
+- Cart / POS
+- Sales Management
+- Inventory with LOT tracking
+- Layaways
+- Shipping logistics
+- Installation management
+- Commission system
 
-### Install the CLI
+### Enterprise Features
+- Reports (Excel + PDF)
+- Analytics and forecasting
+- Alerts system
+- Admin panel
+- Internal control workflows
+- Price governance
+- Session monitoring
+- Audit system
 
-Available via [NPM](https://www.npmjs.com) as dev dependency. To install:
+### Security
+- RLS enabled on all tables
+- RPC-based operations for critical actions
+- Role-based access control (9 roles)
+- Product costs admin-only
+- All operations audited
 
-```bash
-npm i supabase --save-dev
+## Role Hierarchy
+
+1. super_admin
+2. admin
+3. finance_admin
+4. operations_admin
+5. warehouse_admin
+6. sales_manager
+7. sales_user
+8. installer
+9. viewer
+
+## Setup
+
+### 1. Environment Variables
+
+Create `.env.local` with:
+
+```
+env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 ```
 
-When installing with yarn 4, you need to disable experimental fetch with the following nodejs config.
+### 2. Database Migrations
+
+Run the migrations:
 
 ```
-NODE_OPTIONS=--no-experimental-fetch yarn add supabase
+powershell
+.\push-migrations.ps1
 ```
 
-> **Note**
-For Bun versions below v1.0.17, you must add `supabase` as a [trusted dependency](https://bun.sh/guides/install/trusted) before running `bun add -D supabase`.
+Or manually:
 
-<details>
-  <summary><b>macOS</b></summary>
-
-  Available via [Homebrew](https://brew.sh). To install:
-
-  ```sh
-  brew install supabase/tap/supabase
-  ```
-
-  To install the beta release channel:
-  
-  ```sh
-  brew install supabase/tap/supabase-beta
-  brew link --overwrite supabase-beta
-  ```
-  
-  To upgrade:
-
-  ```sh
-  brew upgrade supabase
-  ```
-</details>
-
-<details>
-  <summary><b>Windows</b></summary>
-
-  Available via [Scoop](https://scoop.sh). To install:
-
-  ```powershell
-  scoop bucket add supabase https://github.com/supabase/scoop-bucket.git
-  scoop install supabase
-  ```
-
-  To upgrade:
-
-  ```powershell
-  scoop update supabase
-  ```
-</details>
-
-<details>
-  <summary><b>Linux</b></summary>
-
-  Available via [Homebrew](https://brew.sh) and Linux packages.
-
-  #### via Homebrew
-
-  To install:
-
-  ```sh
-  brew install supabase/tap/supabase
-  ```
-
-  To upgrade:
-
-  ```sh
-  brew upgrade supabase
-  ```
-
-  #### via Linux packages
-
-  Linux packages are provided in [Releases](https://github.com/supabase/cli/releases). To install, download the `.apk`/`.deb`/`.rpm`/`.pkg.tar.zst` file depending on your package manager and run the respective commands.
-
-  ```sh
-  sudo apk add --allow-untrusted <...>.apk
-  ```
-
-  ```sh
-  sudo dpkg -i <...>.deb
-  ```
-
-  ```sh
-  sudo rpm -i <...>.rpm
-  ```
-
-  ```sh
-  sudo pacman -U <...>.pkg.tar.zst
-  ```
-</details>
-
-<details>
-  <summary><b>Other Platforms</b></summary>
-
-  You can also install the CLI via [go modules](https://go.dev/ref/mod#go-install) without the help of package managers.
-
-  ```sh
-  go install github.com/supabase/cli@latest
-  ```
-
-  Add a symlink to the binary in `$PATH` for easier access:
-
-  ```sh
-  ln -s "$(go env GOPATH)/bin/cli" /usr/bin/supabase
-  ```
-
-  This works on other non-standard Linux distros.
-</details>
-
-<details>
-  <summary><b>Community Maintained Packages</b></summary>
-
-  Available via [pkgx](https://pkgx.sh/). Package script [here](https://github.com/pkgxdev/pantry/blob/main/projects/supabase.com/cli/package.yml).
-  To install in your working directory:
-
-  ```bash
-  pkgx install supabase
-  ```
-
-  Available via [Nixpkgs](https://nixos.org/). Package script [here](https://github.com/NixOS/nixpkgs/blob/master/pkgs/development/tools/supabase-cli/default.nix).
-</details>
-
-### Run the CLI
-
-```bash
-supabase bootstrap
+```
+bash
+supabase db push
 ```
 
-Or using npx:
+### 3. Install Dependencies
 
-```bash
-npx supabase bootstrap
+```
+bash
+npm install
 ```
 
-The bootstrap command will guide you through the process of setting up a Supabase project using one of the [starter](https://github.com/supabase-community/supabase-samples/blob/main/samples.json) templates.
+### 4. Run Development Server
 
-## Docs
-
-Command & config reference can be found [here](https://supabase.com/docs/reference/cli/about).
-
-## Breaking changes
-
-We follow semantic versioning for changes that directly impact CLI commands, flags, and configurations.
-
-However, due to dependencies on other service images, we cannot guarantee that schema migrations, seed.sql, and generated types will always work for the same CLI major version. If you need such guarantees, we encourage you to pin a specific version of CLI in package.json.
-
-## Developing
-
-To run from source:
-
-```sh
-# Go >= 1.22
-go run . help
 ```
+bash
+npm run dev
+```
+
+## Project Structure
+
+```
+src/
+├── app/                    # Next.js App Router pages
+│   ├── dashboard/          # Dashboard analytics
+│   ├── catalog/           # Product catalog
+│   ├── pos/               # Point of Sale
+│   ├── sales/             # Sales management
+│   ├── inventory/          # Inventory & lots
+│   ├── customers/          # Customer management
+│   ├── shipping/           # Shipping logistics
+│   ├── installations/      # Installation scheduling
+│   ├── commissions/        # Commission management
+│   ├── reports/            # Reports & exports
+│   └── approvals/          # Approval workflows
+├── components/
+│   ├── ui/               # shadcn/ui components
+│   └── layout/            # Layout components
+├── lib/                   # Utilities & Supabase client
+├── stores/                # Zustand stores
+└── types/                 # TypeScript types
+```
+
+## Database Schema
+
+The schema includes:
+
+- **40+ tables** for all enterprise modules
+- **Row Level Security** policies on every table
+- **Audit triggers** for all critical operations
+- **Approval workflows** for internal controls
+- **Commission rules** engine
+- **CFDI invoice structure** for Mexican invoicing
+- **Chart of accounts** for accounting
+
+See `supabase/migrations/00_setup_all_fixed.sql` for complete schema.
+
+## Internal Controls
+
+Approval workflows required for:
+- Sale cancellation
+- Refunds
+- Price overrides
+- Large discounts
+- Inventory adjustments
+- Wastage
+- Commission payments
+
+## License
+
+Proprietary - All rights reserved
