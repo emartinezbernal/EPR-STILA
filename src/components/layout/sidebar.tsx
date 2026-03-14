@@ -1,9 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { useAuthStore } from '@/stores/auth-store'
+import { useAuthStore, logout } from '@/stores/auth-store'
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -20,6 +20,9 @@ import {
   BookOpen,
   BarChart3,
   Building2,
+  ScrollText,
+  LogOut,
+  User,
 } from 'lucide-react'
 
 const navigation = [
@@ -38,11 +41,13 @@ const navigation = [
   { name: 'Audit', href: '/audit', icon: BookOpen, roles: ['super_admin', 'admin', 'finance_admin'] },
   { name: 'Alerts', href: '/alerts', icon: AlertTriangle, roles: ['super_admin', 'admin', 'sales_manager', 'operations_admin', 'warehouse_admin'] },
   { name: 'Branches', href: '/branches', icon: Building2, roles: ['super_admin', 'admin'] },
+  { name: 'Logs', href: '/logs', icon: ScrollText, roles: ['super_admin', 'admin'] },
   { name: 'Settings', href: '/settings', icon: Settings, roles: ['super_admin', 'admin'] },
 ]
 
 export function Sidebar() {
   const pathname = usePathname()
+  const router = useRouter()
   const { user } = useAuthStore()
 
   // Show all navigation items when no user is authenticated (for demo/development)
@@ -50,6 +55,16 @@ export function Sidebar() {
   const filteredNavigation = user 
     ? navigation.filter(item => item.roles.includes(user.role))
     : navigation
+
+  // Get display name and role
+  const displayName = user ? `${user.first_name} ${user.last_name}`.trim() : 'Usuario'
+  const displayRole = user?.role ? user.role.replace('_', ' ').toUpperCase() : 'SIN ROL'
+  const userId = user?.id || 'N/A'
+
+  const handleLogout = async () => {
+    await logout()
+    router.push('/login')
+  }
 
   return (
     <div className="flex h-full w-64 flex-col bg-gray-900">
@@ -79,6 +94,39 @@ export function Sidebar() {
           })}
         </ul>
       </nav>
+      
+      {/* User Info Section */}
+      {user && (
+        <div className="border-t border-gray-800 p-4">
+          <div className="rounded-lg bg-gray-800 p-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600">
+                <User className="h-5 w-5 text-white" />
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <p className="truncate text-sm font-medium text-white" title={displayName}>
+                  {displayName}
+                </p>
+                <p className="truncate text-xs text-gray-400" title={userId}>
+                  ID: {userId.substring(0, 8)}...
+                </p>
+              </div>
+            </div>
+            <div className="mt-3">
+              <span className="inline-block rounded-full bg-blue-900 px-2 py-1 text-xs font-medium text-blue-200">
+                {displayRole}
+              </span>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="mt-3 flex w-full items-center justify-center rounded-md bg-gray-700 px-3 py-2 text-sm font-medium text-gray-300 hover:bg-gray-600 hover:text-white transition-colors"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Cerrar Sesión
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
